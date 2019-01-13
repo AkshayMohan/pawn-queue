@@ -44,6 +44,7 @@ native queue_insert(Queue[], value);
 native queue_add(Queue[], value);
 native queue_force_insert(Queue[], value); //Overwrites if full.
 native queue_force_add(Queue[], value); //Overwrites if full.
+native queue_force_enqueue(Queue[], value); //Overwrites if full.
 native queue_dequeue(Queue[], &value); //Stores the deleted item in "value".
 native queue_delete(Queue[], &value); //Stores the deleted item in "value".
 native queue_remove(Queue[], &value); //Stores the deleted item in "value".
@@ -535,6 +536,30 @@ enum E_QUEUE_DATA {
 	</returns>
 */
 #define queue_force_add     queue_force_insert
+
+/**
+	<function>
+	    queue_force_enqueue({Queue, QueueC, QueueDT, QueueCDT}:Queue[], value);
+	</function>
+
+	<summary>
+	    Forcefully inserts given element to the queue. Overwrites the rear most
+	    position if queue is already full.
+	</summary>
+
+	<param name="Queue[]">
+	    Queue on which value is to be inserted.
+	</param>
+
+	<param name="value">
+		The value to be inserted.
+	</param>
+
+	<returns>
+	    The rear most position of the queue.
+	</returns>
+*/
+#define queue_force_enqueue 	queue_force_insert
 
 /**
 	<function>
