@@ -1,6 +1,10 @@
 {
 	"user": "AkshayMohan",
 	"repo": "pawn-queue",
-	"entry": "test.pwn",
-	"output": "test.amx"
+	"entry": "tests/test.pwn",
+	"output": "tests/test.amx",
+	"include_path": "pawno/include",
+	"dependencies": [
+		"sampctl/pawn-stdlib"
+	]
 }
