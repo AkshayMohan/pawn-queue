@@ -31,6 +31,9 @@ Detailed documentation can be found here - https://github.com/AkshayMohan/pawn-q
 
 ## Changelogs
 
+v1.0.1 - 13th of January, 2019.
+- Added macro `queue_force_enqueue`
+
 v1.0.0 - 13th of January, 2019.
 - Initial release.
 
