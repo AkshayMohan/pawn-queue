@@ -22,7 +22,7 @@ main() {
 
 	new i, j, k, Float:fVar;
 	for(i = 0; i< TEST_QUEUE_SIZE; i++) {
-	
+
 	    queue_enqueue(g_QTest1, random(random(10)));
 	    queue_enqueue(g_cQTest3, random(10));
 
