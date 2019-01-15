@@ -3,18 +3,26 @@
 #include <a_samp>
 #include <queue>
 
-const TEST_QUEUE_SIZE = 5;
+const TEST_QUEUE_SIZE = 4, MAX_ROWS = 2, MAX_COLS = 2;
 new
 	Queue:g_QTest1<TEST_QUEUE_SIZE>,
 	QueueDT:Float:g_fQTest2<TEST_QUEUE_SIZE>,
 	CircularQueue:g_cQTest3<TEST_QUEUE_SIZE>,//same as QueueC:
 	QueueCDT:Float:g_cfQTest4<TEST_QUEUE_SIZE>;
+
+//Multi-dimensional queues.
+new
+	QueueArray:qArray[MAX_ROWS]<TEST_QUEUE_SIZE>,
+	QueueMatrix:qMatrix[MAX_ROWS][MAX_COLS]<TEST_QUEUE_SIZE>,
 	
+	QueueCArray:qcArray[MAX_ROWS]<TEST_QUEUE_SIZE>,
+	QueueCMatrix:qcMatrix[MAX_ROWS][MAX_COLS]<TEST_QUEUE_SIZE>;
+
 main() {
 
-	new i, Float:fVar;
+	new i, j, k, Float:fVar;
 	for(i = 0; i< TEST_QUEUE_SIZE; i++) {
-	
+
 	    queue_enqueue(g_QTest1, random(random(10)));
 	    queue_enqueue(g_cQTest3, random(10));
 
@@ -81,6 +89,52 @@ main() {
 	
 	printf("Circular Queue | Test 3 | Integer-type");
 	queue_print(g_cQTest3);
+	
+	printf("Testing multi-dimensional queues...");
+	
+	//Queue matrix should always be initialized due to PAWN limitation.
+	queue_init(qMatrix);
+	queue_init(qcMatrix);
+
+	//Adding some values to queue arrays and matrices.
+	for(i = 0; i< MAX_ROWS; i++) {
+	
+	    for(k = 0; k< TEST_QUEUE_SIZE; k++) {
+	    
+		    queue_enqueue(qArray[i], random(10));
+		    //printf("qArray | front=%d | rear=%d", queue_front(qArray[i]), queue_rear(qArray[i]));
+		    queue_enqueue(qcArray[i], random(10));
+		    //printf("qcArray | front = %d | rear = %d", queue_front(qcArray[i]), queue_rear(qcArray[i]));
+		}
+	    for(j = 0; j< MAX_COLS; j++) {
+	    
+	        for(k = 0; k< TEST_QUEUE_SIZE; k++) {
+	        
+	            //printf("[%d,%d,%d] | Front = %d | Rear = %d", i, j, k, queue_front(qMatrix[i][j]), queue_rear(qMatrix[i][j]));
+		        queue_enqueue(qMatrix[i][j], random(10));
+		        queue_enqueue(qcMatrix[i][j], random(10));
+			}
+		}
+	}
+	for(i = 0; i< MAX_ROWS; i++) {
+	
+	    printf("Displaying qArray[%d] (Linear) :", i);
+	    queue_print(qArray[i]);
+	    
+	    printf("Displaying qcArray[%d] (Circular) :", i);
+	    queue_print(qcArray[i]);
+	}
+	for(i = 0; i< MAX_ROWS; i++) {
+	
+	    for(j = 0; j< MAX_COLS; j++) {
+	    
+	        printf("Displaying qMatrix[%d][%d] (Linear)", i, j);
+	        queue_print(qMatrix[i][j]);
+
+	        printf("Displaying qcMatrix[%d][%d] (Circular)", i, j);
+	        queue_print(qcMatrix[i][j]);
+		}
+	}
 }
 
 public OnGameModeInit() {
