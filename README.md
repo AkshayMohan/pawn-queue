@@ -31,7 +31,7 @@ Detailed documentation can be found here - https://github.com/AkshayMohan/pawn-q
 
 ## Changelogs
 
-v1.0.2 - 15th of January, 2019.
+v1.2.0 - 15th of January, 2019.
 - Added support for multi-dimensional queues:
 	- Queue arrays.
 	- Queue matrices.
