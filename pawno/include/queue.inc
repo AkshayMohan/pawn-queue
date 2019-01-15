@@ -4,8 +4,10 @@
 			Implementation of Queue data structure in PAWN.
 
 @Author 	:	ParK_iY AKA "Akshay Mohan"
-@Version 	:   v1.0
+@Version 	:   v1.2.0
 @Github     :   https://github.com/AkshayMohan/queue.inc
+
+Last Update :   15th of January, 2019.
 
 MIT License
 
@@ -39,6 +41,7 @@ SOFTWARE.
 
 Library functions:
 
+native queue_init(QueueMatrix[][]); //Only 2D queues require.
 native queue_enqueue(Queue[], value);
 native queue_insert(Queue[], value);
 native queue_add(Queue[], value);
@@ -65,13 +68,6 @@ native array_to_queue(Queue[], arr[], size = sizeof(arr));
 //Functions are documented below.
 */
 
-
-enum E_QUEUE_DATA {
-
-		E_FRONT,
-		E_REAR,
-		E_SIZE
-}
 
 #if !defined _STREAMER_TAGS_
 	#define _STREAMER_TAGS_ \
@@ -108,20 +104,83 @@ enum E_QUEUE_DATA {
 	#endif
 #endif
 
-#define CircularQueue QueueC
-#define CircularQueueDT QueueCDT
+#define 				CircularQueue 			QueueC
+#define 				CircularQueueDT 		QueueCDT
+#define 				CircularQueueArray      QueueCArray
+#define                 CircularQueueDTArray    QueueCDTArray
+#define                 CircularQueueMatrix     QueueCMatrix
+#define                 CircularQueueDTMatrix   QueueCDTMatrix
 
 #define QueueC:%0<%1> \
-	%0[%1], QueueC:Q_%0[E_QUEUE_DATA] = {-1, -1, %1}
+	%0[%1], QueueC:front_%0 = QueueC:-1, QueueC:rear_%0 = QueueC:-1, QSZ_%0 = %1
+
+#define QueueCArray:%0[%2]<%1> \
+	%0[%2][%1], QueueC:front_%0[%2] = {QueueC:-1, ...}, \
+	QueueC:rear_%0[%2] = {QueueC:-1, ...}, QSZ_%0[%2] = {%1, ...}
+
+#define QueueCMatrix:%0[%2][%3]<%1> \
+	%0[%2][%3][%1], QueueC:front_%0[%2][%3], QueueC:rear_%0[%2][%3], \
+	QSZ_%0[%2][%3]
 
 #define QueueCDT:%2:%0<%1> \
-	%2:%0[%1], QueueC:Q_%0[E_QUEUE_DATA] = {-1, -1, %1}
+	%2:%0[%1], QueueC:front_%0 = QueueC:-1, QueueC:rear_%0 = QueueC:-1, \
+	QSZ_%0 = %1
+
+#define QueueCDTArray:%2:%0[%3]<%1> \
+	%2:%0[%3][%1], QueueC:front_%0[%3] = {QueueC:-1, ...}, \
+	QueueC:rear_%0[%3] = {QueueC:-1, ...}, QSZ_%0[%3] = {%1, ...}
+
+#define QueueCDTMatrix:%2:%0[%3][%4]<%1> \
+	%2:%0[%3][%4][%1], QueueC:front_%0[%3][%4], QueueC:rear_%0[%3][%4], \
+	QSZ_%0[%3][%4]
 
 #define Queue:%0<%1> \
-	%0[%1], Q_%0[E_QUEUE_DATA] = {-1, -1, %1}
+	%0[%1], front_%0 = -1, rear_%0 = -1, QSZ_%0 = %1
+
+#define QueueArray:%0[%2]<%1> \
+	%0[%2][%1], front_%0[%2] = {-1, ...}, rear_%0[%2] = {-1, ...}, \
+	QSZ_%0[%2] = {%1, ...}
+
+#define QueueMatrix:%0[%2][%3]<%1> \
+	%0[%2][%3][%1], front_%0[%2][%3], rear_%0[%2][%3], QSZ_%0[%2][%3]
 
 #define QueueDT:%2:%0<%1> \
-	%2:%0[%1], Q_%0[E_QUEUE_DATA] = {-1, -1, %1}
+	%2:%0[%1], front_%0 = -1, rear_%0 = -1, QSZ_%0 = %1
+
+#define QueueDTArray:%2:%0[%3]<%1> \
+	%2:%0[%3][%1], front_%0[%3] = {-1, ...}, rear_%0[%3] = {-1, ...}, \
+	QSZ_%0[%3] = {%1, ...}
+
+#define QueueDTMatrix:%2:%0[%3][%4]<%1> \
+	%2:%0[%3][%4][%1], front_%0[%3][%4], rear_%0[%3][%4], QSZ_%0[%3][%4]
+
+
+/*
+#TODO : Both queue-array and queue-matrix should share common size variable.
+		Functions should be common for Queue, QueueArray and QueueMatrix.
+*/
+
+/**
+	<function>
+	    queue_init({QueueMatrix, QueueCMatrix, QueueDTMatrix, QueueCDTMatrix}:
+	                QueueMatrix[][]);
+	</function>
+
+	<summary>
+	    Initializes 2-D queue (queue matrix).
+	</summary>
+
+	<param name="QueueMatrix[][]">
+	    Matrix queue to be initialized.
+	</param>
+
+	<returns>
+	    This function always returns 1.
+	</returns>
+*/
+#define queue_init(%0) \
+	internal_queue_init(front_%0, rear_%0, QSZ_%0, sizeof(front_%0), \
+ 	sizeof(front_%0[]), sizeof(%0[][]))
 
 /**
 	<function>
@@ -141,7 +200,7 @@ enum E_QUEUE_DATA {
 	</returns>
 */
 #define queue_is_full(%0) \
-	internal_is_queue_full(Q_%0)
+	internal_is_queue_full(front_%0, rear_%0, QSZ_%0)
 
 /**
 	<function>
@@ -161,7 +220,7 @@ enum E_QUEUE_DATA {
 	</returns>
 */
 #define queue_is_empty(%0) \
-	internal_is_queue_empty(Q_%0)
+	internal_is_queue_empty(rear_%0)
 
 /**
 	<function>
@@ -185,7 +244,7 @@ enum E_QUEUE_DATA {
 	</returns>
 */
 #define queue_insert(%0,%1) \
-	internal_queue_insert(%0, %1, Q_%0)
+	internal_queue_insert(%0, %1, front_%0, rear_%0, QSZ_%0)
 
 /**
 	<function>
@@ -210,7 +269,7 @@ enum E_QUEUE_DATA {
 	</returns>
 */
 #define queue_force_insert(%0,%1) \
-	internal_queue_force_insert(%0, %1, Q_%0)
+	internal_queue_force_insert(%0, %1, front_%0, rear_%0, QSZ_%0)
 
 /**
 	<function>
@@ -234,7 +293,7 @@ enum E_QUEUE_DATA {
 	</returns>
 */
 #define queue_delete(%0,%1) \
-	internal_queue_delete(%0, Q_%0, %1)
+	internal_queue_delete(%0, front_%0, rear_%0, %1, QSZ_%0)
 
 /**
 	<function>
@@ -259,7 +318,7 @@ enum E_QUEUE_DATA {
 	</returns>
 */
 #define queue_search(%0,%1) \
-	internal_queue_search(%0, %1, Q_%0)
+	internal_queue_search(%0, %1, front_%0, rear_%0, QSZ_%0)
 
 /**
 	<function>
@@ -289,7 +348,7 @@ enum E_QUEUE_DATA {
 	</returns>
 */
 #define queue_replace(%0,%1,%2) \
-	internal_queue_replace(%0, %1, %2, Q_%0)
+	internal_queue_replace(%0, %1, %2, front_%0, rear_%0, QSZ_%0)
 
 /**
 	<function>
@@ -313,7 +372,7 @@ enum E_QUEUE_DATA {
 	</returns>
 */
 #define queue_to_array(%0,%1) \
-	internal_queue_to_arr(%0, Q_%0, %1)
+	internal_queue_to_arr(%0, front_%0, rear_%0, %1, QSZ_%0)
 
 /**
 	<function>
@@ -342,7 +401,7 @@ enum E_QUEUE_DATA {
 	</returns>
 */
 #define array_to_queue(%0,%1) \
-	internal_arr_to_queue(%0, Q_%0, %1)
+	internal_arr_to_queue(%0, front_%0, rear_%0, %1, QSZ_%0)
 /**
 	<function>
 	    queue_delete_element({Queue, QueueC, QueueDT, QueueCDT}:Queue[], value);
@@ -365,7 +424,7 @@ enum E_QUEUE_DATA {
 	</returns>
 */
 #define queue_delete_element(%0,%1) \
-	internal_queue_del_element(%0, %1, Q_%0)
+	internal_queue_del_element(%0, %1, front_%0, rear_%0, QSZ_%0)
 
 /**
 	<function>
@@ -385,7 +444,7 @@ enum E_QUEUE_DATA {
 	</returns>
 */
 #define queue_print(%0) \
-	internal_print_queue(%0, Q_%0)
+	internal_print_queue(%0, front_%0, rear_%0, QSZ_%0)
 
 /**
 	<function>
@@ -405,7 +464,7 @@ enum E_QUEUE_DATA {
 	</returns>
 */
 #define queue_rear(%0) \
-	Q_%0[E_REAR]
+	_:rear_%0
 
 /**
 	<function>
@@ -425,7 +484,7 @@ enum E_QUEUE_DATA {
 	</returns>
 */
 #define queue_front(%0) \
-	Q_%0[E_FRONT]
+	_:front_%0
 
 /**
 	<function>
@@ -445,7 +504,7 @@ enum E_QUEUE_DATA {
 	</returns>
 */
 #define queue_size(%0) \
-	Q_%0[E_SIZE]
+	QSZ_%0
 
 /**
 	<function>
@@ -465,7 +524,7 @@ enum E_QUEUE_DATA {
 	</returns>
 */
 #define queue_reset(%0) \
-	Q_%0[E_FRONT] = Q_%0[E_REAR] = -1
+	front_%0 = rear_%0 = -1
 
 /**
 	<function>
@@ -628,107 +687,108 @@ enum E_QUEUE_DATA {
 
 
 //Internal functions.
-stock internal_is_queue_full({_, QueueC}:Queue[E_QUEUE_DATA],
-							tagid = tagof(Queue)) {
+stock internal_is_queue_full({_, QueueC}:queueFront, {_, QueueC}:queueRear, size,
+							tagid = tagof(queueFront)) {
 
-	new i;
-	#pragma unused i
-	//For some reasons, compiler crashes when I begin with this if statement.
-
+	new upperBound = size - 1;
 	if(tagid == tagof(QueueC:)) {
 
-	    if((Queue[E_REAR] == Queue[E_SIZE] - 1 && Queue[E_FRONT] == 0) ||
-	        Queue[E_REAR] == Queue[E_FRONT] - 1)
+	    if((queueRear == upperBound && queueFront == 0) ||
+	        queueRear == queueFront - 1)
 	        return 1;
 		return 0;
 	}
-	else if(Queue[E_REAR] == Queue[E_SIZE] - 1)
+	else if(queueRear == upperBound)
 	    return 1;
 	return 0;
 }
 
-stock internal_is_queue_empty({_, QueueC}:Queue[E_QUEUE_DATA]) {
+stock internal_is_queue_empty({_, QueueC}:queueFront) {
 
-	if(Queue[E_FRONT] == -1)
+	if(queueFront == -1)
 	    return 1;
 	return 0;
 }
 
 stock internal_queue_insert({_STRONG_TAGS_}:Queue[],
 							{_STRONG_TAGS_}:value,
-							{_, QueueC}:E_Queue[E_QUEUE_DATA],
-							tagid = tagof(E_Queue)) {
+							&{_, QueueC}:queueFront, &{_, QueueC}:queueRear,
+							size,
+							tagid = tagof(queueFront)) {
 
 	if(tagid == tagof(QueueC:)) {
 
-		if(internal_is_queue_full(QueueC:E_Queue))
+		if(internal_is_queue_full(QueueC:queueFront, QueueC:queueRear, size))
 		    return -1;
 	} else {
 
-	    if(internal_is_queue_full(E_Queue))
+	    if(internal_is_queue_full(queueFront, queueRear, size))
 	        return -1;
 	}
-	if(E_Queue[E_FRONT] == -1)
-	    E_Queue[E_FRONT] = E_Queue[E_REAR] = 0;
-	else if(tagid == tagof(QueueC:) && (E_Queue[E_REAR] == E_Queue[E_SIZE] - 1))
-		E_Queue[E_REAR] = 0;
+	if(queueFront == -1)
+	    queueFront = queueRear = 0;
+	else if(tagid == tagof(QueueC:) && (queueRear == size - 1))
+		queueRear = 0;
 	else
-	    E_Queue[E_REAR]++;
+	    queueRear++;
 
-	Queue[E_Queue[E_REAR]] = value;
-	return E_Queue[E_REAR];
+	Queue[queueRear] = value;
+	return queueRear;
 }
 
 stock internal_queue_force_insert({_STRONG_TAGS_}:Queue[],
 									{_STRONG_TAGS_}:value,
-									QueueC:E_Queue[E_QUEUE_DATA]) {
+									&QueueC:queueFront, &QueueC:queueRear,
+									size) {
 
-	if(E_Queue[E_FRONT] == -1)
-	    E_Queue[E_FRONT] = E_Queue[E_REAR] = 0;
-	else if(E_Queue[E_REAR] == E_Queue[E_SIZE] - 1) {
+	if(queueFront == QueueC:-1)
+	    queueFront = queueRear = QueueC:0;
+	else if(queueRear == QueueC:(size - 1)) {
 
-	    if(!E_Queue[E_FRONT])
-	        E_Queue[E_FRONT] = 1;
-	    E_Queue[E_REAR] = 0;
+	    if(!queueFront)
+	        queueFront = QueueC:1;
+	    queueRear = QueueC:0;
 	}
-	else if(E_Queue[E_FRONT] == E_Queue[E_REAR] + 1) {
+	else if(queueFront == queueRear + QueueC:1) {
 
-	    if(E_Queue[E_FRONT] == E_Queue[E_SIZE] - 1)
-	        E_Queue[E_FRONT] = 0;
+	    if(queueFront == QueueC:(size - 1))
+	        queueFront = QueueC:0;
 		else
-		    E_Queue[E_FRONT]++;
+		    queueFront++;
 
-		E_Queue[E_REAR]++;
+		queueRear++;
 	}
-	Queue[E_Queue[E_REAR]] = value;
-	return E_Queue[E_REAR];
+	Queue[_:queueRear] = value;
+	return _:queueRear;
 }
 
 stock internal_queue_delete({_STRONG_TAGS_}:Queue[],
-							{_, QueueC}:E_Queue[E_QUEUE_DATA],
+							&{_, QueueC}:queueFront, &{_, QueueC}:queueRear,
 							&{_STRONG_TAGS_}:value,
-							tagid = tagof(E_Queue)) {
+							size,
+							tagid = tagof(queueFront)) {
 
-	if(internal_is_queue_empty(E_Queue))
+	if(internal_is_queue_empty(queueFront))
 	    return -1;
-	value = Queue[E_Queue[E_FRONT]];
-	if(E_Queue[E_FRONT] == E_Queue[E_REAR])
-	    E_Queue[E_FRONT] = E_Queue[E_REAR] = -1;
-	else if(tagid == tagof(QueueC:) && E_Queue[E_FRONT] == E_Queue[E_SIZE] - 1)
-	    E_Queue[E_FRONT] = 0;
+	value = Queue[queueFront];
+	if(queueFront == queueRear)
+	    queueFront = queueRear = -1;
+	else if(tagid == tagof(QueueC:) && queueFront == size - 1)
+	    queueFront = 0;
 	else
-	    E_Queue[E_FRONT]++;
-	return E_Queue[E_FRONT];
+	    queueFront++;
+	return queueFront;
 }
 
 stock internal_queue_search({_STRONG_TAGS_}:Queue[], {_STRONG_TAGS_}:value,
-							{_, QueueC}:E_Queue[E_QUEUE_DATA],
-							tagid = tagof(E_Queue)) {
+							{_, QueueC}:queueFront, {_, QueueC}:queueRear,
+							size,
+							tagid = tagof(queueFront)) {
 
 	new i;
-	if(tagid != tagof(QueueC:) || E_Queue[E_REAR] >= E_Queue[E_FRONT]) {
+	if(tagid != tagof(QueueC:) || queueRear >= queueFront) {
 
-	    for(i = E_Queue[E_FRONT]; i <= E_Queue[E_REAR]; i++) {
+	    for(i = queueFront; i <= queueRear; i++) {
 
 	        if(Queue[i] == value)
 				return i;
@@ -736,12 +796,12 @@ stock internal_queue_search({_STRONG_TAGS_}:Queue[], {_STRONG_TAGS_}:value,
 	}
 	else {
 
-	    for(i = E_Queue[E_FRONT]; i< E_Queue[E_SIZE]; i++) {
+	    for(i = queueFront; i< size; i++) {
 
 			if(Queue[i] == value)
 			    return i;
 		}
-		for(i = 0; i <= E_Queue[E_REAR]; i++) {
+		for(i = 0; i <= queueRear; i++) {
 
 		    if(Queue[i] == value)
 		        return i;
@@ -752,93 +812,116 @@ stock internal_queue_search({_STRONG_TAGS_}:Queue[], {_STRONG_TAGS_}:value,
 
 stock internal_queue_replace({_STRONG_TAGS_}:Queue[], {_STRONG_TAGS_}:value1,
 							{_STRONG_TAGS_}:value2,
-							{_, QueueC}:E_Queue[E_QUEUE_DATA],
-							tagid = tagof(E_Queue)) {
+							{_, QueueC}:queueFront, {_, QueueC}:queueRear,
+							size,
+							tagid = tagof(queueFront)) {
 
 	new idx;
 	if(tagid == tagof(QueueC:))
-	    idx = internal_queue_search(Queue, value1, QueueC:E_Queue);
+	    idx = internal_queue_search(Queue, value1, QueueC:queueFront, QueueC:queueRear,
+									size);
 	else
-	    idx = internal_queue_search(Queue, value1, E_Queue);
+	    idx = internal_queue_search(Queue, value1, queueFront, queueRear, size);
 	if(idx != -1)
 	    Queue[idx] = value2;
 	return idx;
 }
 
 stock internal_queue_to_arr({_STRONG_TAGS_}:Queue[],
-							{_, QueueC}:E_Queue[E_QUEUE_DATA],
-							{_STRONG_TAGS_}:arr[], tagid = tagof(E_Queue)) {
+							{_, QueueC}:queueFront, {_, QueueC}:queueRear,
+							{_STRONG_TAGS_}:arr[],
+							size, tagid = tagof(queueFront)) {
 
 	new i, j = 0;
-	if(tagid != tagof(QueueC:) || E_Queue[E_REAR] >= E_Queue[E_FRONT]) {
+	if(tagid != tagof(QueueC:) || queueRear >= queueFront) {
 
-	    for(i = E_Queue[E_FRONT]; i <= E_Queue[E_REAR]; i++)
+	    for(i = queueFront; i <= queueRear; i++)
 	        arr[j++] = Queue[i];
 	 } else {
 
-	    for(i = E_Queue[E_FRONT]; i < E_Queue[E_SIZE]; i++)
+	    for(i = queueFront; i < size; i++)
 	        arr[j++] = Queue[i];
 
-		for(i = 0; i <= E_Queue[E_REAR]; i++)
+		for(i = 0; i <= queueRear; i++)
 		    arr[j++] = Queue[i];
 	}
 	return 1;
 }
 
 stock internal_arr_to_queue({_STRONG_TAGS_}:Queue[],
-							{_, QueueC}:E_Queue[E_QUEUE_DATA],
+							&{_, QueueC}:queueFront, &{_, QueueC}:queueRear,
 							{_STRONG_TAGS_}:arr[],
+							&queue_size,
 							size = sizeof(arr)) {
 	new i;
-	for(i = 0, E_Queue[E_FRONT] = 0, E_Queue[E_REAR] = size - 1,
-		E_Queue[E_SIZE] = size; i< size; i++)
+	for(i = 0, queueFront = 0, queueRear = size - 1,
+		queue_size = size; i< size; i++)
 		Queue[i] = arr[i];
 	return 1;
 }
 
 stock internal_queue_del_element({_STRONG_TAGS_}:Queue[], {_STRONG_TAGS_}:value,
-							{_, QueueC}:E_Queue[E_QUEUE_DATA],
-							tagid = tagof(E_Queue)) {
+							&{_, QueueC}:queueFront, &{_, QueueC}:queueRear,
+							size,
+							tagid = tagof(queueFront)) {
 
 	new idx, i;
 	if(tagid == tagof(QueueC:)) {
 
-	    idx = internal_queue_search(Queue, value, QueueC:E_Queue);
+	    idx = internal_queue_search(Queue, value, QueueC:queueFront, QueueC:queueRear,
+									size);
 	    if(idx != -1) {
 
-			if(E_Queue[E_REAR] >= E_Queue[E_FRONT]) {
+			if(queueRear >= queueFront) {
 
-			    for(i = idx + 1; i <= E_Queue[E_REAR]; i++)
+			    for(i = idx + 1; i <= queueRear; i++)
 			        Queue[i-1] = Queue[i];
 			}
 			else {
 
-				for(i = idx + 1; i < E_Queue[E_SIZE]; i++)
+				for(i = idx + 1; i < size; i++)
 				    Queue[i-1] = Queue[i];
 
 				Queue[i-1] = Queue[0];
-				for(i = 1; i <= E_Queue[E_REAR]; i++)
+				for(i = 1; i <= queueRear; i++)
 				    Queue[i-1] = Queue[i];
 			}
-			E_Queue[E_REAR]--;
+			queueRear--;
 		}
 	} else {
 
-	    idx = internal_queue_search(Queue, value, E_Queue);
+	    idx = internal_queue_search(Queue, value, queueFront, queueRear, size);
 	    if(idx != -1) {
 
-	        for(i = idx + 1; i <= E_Queue[E_REAR]; i++)
+	        for(i = idx + 1; i <= queueRear; i++)
 	            Queue[i - 1] = Queue[i];
-			E_Queue[E_REAR]--;
+			queueRear--;
 		}
 	}
 	return idx;
 }
 
+//Only for 2D queues (QueueMatrix)
+stock internal_queue_init({_, QueueC}:queueFront[][], {_, QueueC}:queueRear[][],
+							size[][], rows, cols, size_) {
+
+	new i, j;
+	for(i = 0; i< rows; i++) {
+
+	    for(j = 0; j< cols; j++) {
+
+	    	queueFront[i][j] = queueRear[i][j] = -1;
+	    	size[i][j] 	= size_;
+		}
+	}
+	return 1;
+}
+
 //For debugging purposes.
 stock internal_print_queue({_STRONG_TAGS_}:Queue[],
-							{_, QueueC}:E_Queue[E_QUEUE_DATA],
-							tagid = tagof(E_Queue),
+							{_, QueueC}:queueFront, {_, QueueC}:queueRear,
+							size,
+							tagid = tagof(queueFront),
 							qtagid = tagof(Queue)) {
 
 	new i, sformatSpecifier[3];
@@ -846,18 +929,17 @@ stock internal_print_queue({_STRONG_TAGS_}:Queue[],
 	    sformatSpecifier = "%f";
 	else
 	    sformatSpecifier = "%d";
-	if(tagid != tagof(QueueC:) || E_Queue[E_REAR] >= E_Queue[E_FRONT]) {
+	if(tagid != tagof(QueueC:) || queueRear >= queueFront) {
 
-	    for(i = E_Queue[E_FRONT]; i <= E_Queue[E_REAR]; i++)
+	    for(i = queueFront; i <= queueRear; i++)
 	        printf(sformatSpecifier, Queue[i]);
 	} else {
 
-	    for(i = E_Queue[E_FRONT]; i < E_Queue[E_SIZE]; i++)
+	    for(i = queueFront; i < size; i++)
 	        printf(sformatSpecifier, Queue[i]);
 
-		for(i = 0; i <= E_Queue[E_REAR]; i++)
+		for(i = 0; i <= queueRear; i++)
 		    printf(sformatSpecifier, Queue[i]);
 	}
 	return 1;
 }
-
